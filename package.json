@@ -1,0 +1,14 @@
+{
+  "name": "hyperx-crawler",
+  "version": "1.0.0",
+  "description": "Hyperliquid 鏈上錢包數據爬蟲 + 排行榜 API",
+  "scripts": {
+    "crawl":    "node src/crawler.js 100",
+    "crawl:500": "node src/crawler.js 500",
+    "crawl:forever": "node src/crawler.js --forever",
+    "api":      "node src/api.js",
+    "start":    "node src/api.js",
+    "both":     "node -e \"require('./src/crawler').crawl({maxWallets:200}).then(()=>require('./src/api.js'))\""
+  },
+  "engines": { "node": ">=18.0.0" }
+}
