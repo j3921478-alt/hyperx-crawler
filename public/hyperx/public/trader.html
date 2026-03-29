@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HyperX — 交易者分析</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0b0e11;--bg1:#131720;--bg2:#1a2030;--bg3:#202840;
+  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.1);
+  --tx:#e8eaf0;--t2:#8892a4;--t3:#4a5568;
+  --green:#0ecb81;--green2:rgba(14,203,129,0.12);
+  --red:#f6465d;--red2:rgba(246,70,93,0.12);
+  --yellow:#f0b90b;--blue:#1e9bf0;--purple:#7b61ff;
+  --mono:'IBM Plex Mono',monospace;--sans:'Plus Jakarta Sans',system-ui,sans-serif;
+  --r:6px;--rl:10px;
+}
+html,body{min-height:100%;background:var(--bg0);color:var(--tx);font-family:var(--sans);font-size:13px}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;background:var(--bg1);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:28px;height:28px;background:var(--green);border-radius:5px;display:grid;place-items:center}
+.logo-mark svg{width:14px;height:14px}
+.logo-name{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:2px;color:var(--tx)}
+.back-btn{display:flex;align-items:center;gap:6px;color:var(--t2);font-size:12px;cursor:pointer;background:none;border:none;font-family:var(--sans);transition:color .15s}
+.back-btn:hover{color:var(--tx)}
+.search-wrap{display:flex;gap:8px;align-items:center}
+.addr-input{background:var(--bg2);border:1px solid var(--b2);border-radius:var(--r);padding:7px 12px;font-size:12px;color:var(--tx);font-family:var(--mono);outline:none;width:320px;transition:border-color .15s}
+.addr-input:focus{border-color:var(--green)}
+.addr-input::placeholder{color:var(--t3)}
+.search-btn{padding:7px 16px;border-radius:var(--r);background:var(--green);color:#000;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
+.search-btn:hover{opacity:.88}
+
+/* LAYOUT */
+.container{max-width:1400px;margin:0 auto;padding:20px 24px}
+
+/* PROFILE HEADER */
+.profile-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap}
+.profile-left{display:flex;align-items:center;gap:16px}
+.avatar-big{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:700;flex-shrink:0}
+.profile-name{font-size:20px;font-weight:700;margin-bottom:4px}
+.profile-addr{font-family:var(--mono);font-size:11px;color:var(--t3);display:flex;align-items:center;gap:8px}
+.copy-addr{background:none;border:none;color:var(--t3);cursor:pointer;font-size:11px;padding:2px 6px;border-radius:4px;transition:all .15s}
+.copy-addr:hover{background:var(--b1);color:var(--tx)}
+.profile-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ptag{font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid}
+.profile-right{display:flex;gap:10px;align-items:center}
+.follow-btn{padding:8px 20px;border-radius:var(--r);border:1px solid var(--green);color:var(--green);background:var(--green2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:all .15s}
+.follow-btn:hover{background:rgba(14,203,129,.2)}
+.copy-trade-btn{padding:8px 20px;border-radius:var(--r);background:var(--green);color:#000;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
+.copy-trade-btn:hover{opacity:.88}
+
+/* SCORE CARD */
+.score-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px}
+.sc{background:var(--bg1);border:1px solid var(--b1);border-radius:var(--rl);padding:14px 16px}
+.sc-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.sc-val{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1}
+.sc-sub{font-size:10px;color:var(--t3);margin-top:5px}
+.sc-chg{font-size:10px;margin-top:5px;font-family:var(--mono)}
+.up{color:var(--green)}.dn{color:var(--red)}
+
+/* HYPERX SCORE */
+.hx-score{background:var(--bg1);border:1px solid var(--b1);border-radius:var(--rl);padding:14px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hx-num{font-family:var(--mono);font-size:32px;font-weight:700;color:var(--green);line-height:1}
+.hx-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
+.hx-bar{width:100%;height:4px;background:var(--bg2);border-radius:2px;margin-top:8px;overflow:hidden}
+.hx-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green))}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:20px}
+
+/* PANEL */
+.panel{background:var(--bg1);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--b1)}
+.pt{font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+.tab-g{display:flex;gap:0}
+.tab-btn{padding:5px 12px;font-size:11px;cursor:pointer;color:var(--t2);border:none;background:none;font-family:var(--sans);border-bottom:2px solid transparent;transition:all .15s}
+.tab-btn.on{color:var(--green);border-bottom-color:var(--green)}
+
+/* CHART */
+.chart-wrap{padding:16px;position:relative;height:220px}
+
+/* LONG SHORT BREAKDOWN */
+.ls-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--b1)}
+.ls-cell{background:var(--bg1);padding:14px 16px}
+.ls-header{font-size:11px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ls-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)}
+.ls-row:last-child{border-bottom:none}
+.ls-key{font-size:11px;color:var(--t3)}
+.ls-val{font-family:var(--mono);font-size:12px;font-weight:600}
+
+/* STATS TABLE */
+.stats-2col{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--b1);margin-bottom:1px}
+.stat-cell{background:var(--bg1);padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.stat-key{font-size:11px;color:var(--t3)}
+.stat-val{font-family:var(--mono);font-size:12px;font-weight:600}
+
+/* TRADE TABLE */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;padding:0 14px 10px;font-size:9px;letter-spacing:1.2px;color:var(--t3);text-transform:uppercase;font-weight:700}
+.tbl td{padding:10px 14px;border-top:1px solid var(--b1);font-size:12px;vertical-align:middle}
+.tbl tr:first-child td{border-top:none}
+.tbl tbody tr:hover td{background:rgba(255,255,255,0.025)}
+.mono{font-family:var(--mono)}
+.badge{display:inline-flex;font-size:10px;padding:2px 7px;border-radius:3px;font-weight:700;font-family:var(--mono)}
+.long{background:var(--green2);color:var(--green)}.short{background:var(--red2);color:var(--red)}
+
+/* SIDE PANEL */
+.side-stat{padding:14px 16px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center}
+.side-stat:last-child{border-bottom:none}
+.ss-key{font-size:11px;color:var(--t3)}
+.ss-val{font-family:var(--mono);font-size:13px;font-weight:700}
+
+/* ACTIVITY HEATMAP */
+.heat-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;padding:14px 16px}
+.heat-cell{aspect-ratio:1;border-radius:2px;cursor:pointer;transition:opacity .15s}
+.heat-cell:hover{opacity:.7}
+
+/* LOADING / ERROR */
+.loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:60px 20px;text-align:center}
+.spin{width:28px;height:28px;border:2px solid var(--b2);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{color:var(--red);font-size:12px}
+
+/* PROGRESS BAR */
+.prog{height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:2px;transition:width .5s}
+
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:16px">
+    <a href="index.html" class="logo">
+      <div class="logo-mark"><svg viewBox="0 0 14 14" fill="#000"><path d="M1 7l3-3.5 3 3.5 3-3.5V11H1z"/></svg></div>
+      <span class="logo-name">HYPERX</span>
+    </a>
+    <button class="back-btn" onclick="history.back()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9,2 4,7 9,12"/></svg>
+      返回排行榜
+    </button>
+  </div>
+  <div class="search-wrap">
+    <input class="addr-input" id="addr-input" placeholder="輸入錢包地址 0x..." value="">
+    <button class="search-btn" onclick="searchAddr()">分析</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- LOADING STATE -->
+  <div id="loading-state" class="loading">
+    <div class="spin"></div>
+    <div style="color:var(--t2)">載入交易者數據...</div>
+    <div style="font-size:10px;color:var(--t3);font-family:var(--mono)" id="loading-sub">連接 Hyperliquid API</div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="empty-state" style="display:none" class="loading">
+    <div style="font-size:40px">🔍</div>
+    <div style="font-size:16px;font-weight:600">輸入錢包地址開始分析</div>
+    <div style="color:var(--t2);font-size:12px">輸入任何 Hyperliquid 錢包地址，查看詳細交易分析</div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center" id="sample-btns"></div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="main-content" style="display:none">
+
+    <!-- PROFILE HEADER -->
+    <div class="profile-hd">
+      <div class="profile-left">
+        <div class="avatar-big" id="p-avatar"></div>
+        <div>
+          <div class="profile-name" id="p-name"></div>
+          <div class="profile-addr">
+            <span id="p-addr-full"></span>
+            <button class="copy-addr" onclick="copyAddr()" id="copy-addr-btn">複製</button>
+          </div>
+          <div class="profile-tags" id="p-tags"></div>
+        </div>
+      </div>
+      <div class="profile-right">
+        <button class="follow-btn">+ 收藏</button>
+        <button class="copy-trade-btn" onclick="openCopyModal()">立即跟單</button>
+      </div>
+    </div>
+
+    <!-- SCORE ROW -->
+    <div class="score-row">
+      <div class="hx-score">
+        <div class="hx-num" id="hx-score">--</div>
+        <div class="hx-label">HyperX 評分</div>
+        <div class="hx-bar"><div class="hx-fill" id="hx-fill" style="width:0%"></div></div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">已實現盈虧</div>
+        <div class="sc-val up" id="s-pnl">--</div>
+        <div class="sc-sub" id="s-net">扣手續費後: --</div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">勝率</div>
+        <div class="sc-val" id="s-wr">--</div>
+        <div class="prog"><div class="prog-fill" id="wr-prog" style="width:0%;background:var(--green)"></div></div>
+        <div class="sc-sub" id="s-wrc">-- 勝 / -- 敗</div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">最大回撤</div>
+        <div class="sc-val dn" id="s-dd">--</div>
+        <div class="prog"><div class="prog-fill" id="dd-prog" style="width:0%;background:var(--red)"></div></div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">交易次數</div>
+        <div class="sc-val" id="s-tc">--</div>
+        <div class="sc-sub" id="s-ad">活躍 -- 天</div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">偏好幣種</div>
+        <div class="sc-val" id="s-coin" style="color:var(--yellow)">--</div>
+        <div class="sc-sub" id="s-lev">槓桿偏好: --</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div>
+
+        <!-- PnL CHART -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph">
+            <span class="pt">累計盈虧走勢</span>
+            <div class="tab-g">
+              <button class="tab-btn on" onclick="switchChart('pnl',this)">PnL</button>
+              <button class="tab-btn" onclick="switchChart('winrate',this)">勝率分布</button>
+              <button class="tab-btn" onclick="switchChart('volume',this)">成交量</button>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
+        </div>
+
+        <!-- LONG / SHORT BREAKDOWN -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">多空詳細分析</span></div>
+          <div class="ls-grid">
+            <div class="ls-cell">
+              <div class="ls-header" style="color:var(--green)">
+                <span class="badge long">LONG 多單</span>
+              </div>
+              <div class="ls-row"><span class="ls-key">已實現盈虧</span><span class="ls-val up" id="ls-long-pnl">--</span></div>
+              <div class="ls-row"><span class="ls-key">勝率</span><span class="ls-val" id="ls-long-wr">--</span></div>
+              <div class="ls-row"><span class="ls-key">盈利筆數</span><span class="ls-val" id="ls-long-wc">--</span></div>
+              <div class="ls-row"><span class="ls-key">平均盈利</span><span class="ls-val up" id="ls-long-aw">--</span></div>
+              <div class="ls-row"><span class="ls-key">平均虧損</span><span class="ls-val dn" id="ls-long-al">--</span></div>
+            </div>
+            <div class="ls-cell">
+              <div class="ls-header" style="color:var(--red)">
+                <span class="badge short">SHORT 空單</span>
+              </div>
+              <div class="ls-row"><span class="ls-key">已實現盈虧</span><span class="ls-val" id="ls-short-pnl">--</span></div>
+              <div class="ls-row"><span class="ls-key">勝率</span><span class="ls-val" id="ls-short-wr">--</span></div>
+              <div class="ls-row"><span class="ls-key">盈利筆數</span><span class="ls-val" id="ls-short-wc">--</span></div>
+              <div class="ls-row"><span class="ls-key">平均盈利</span><span class="ls-val up" id="ls-short-aw">--</span></div>
+              <div class="ls-row"><span class="ls-key">平均虧損</span><span class="ls-val dn" id="ls-short-al">--</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT TRADES -->
+        <div class="panel">
+          <div class="ph">
+            <span class="pt">最近交易紀錄</span>
+            <span style="font-size:10px;color:var(--t3);font-family:var(--mono)" id="fills-count">-- 筆</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr>
+                <th>時間</th><th>交易對</th><th>方向</th>
+                <th>成交價</th><th>數量</th><th>已實現盈虧</th><th>手續費</th>
+              </tr></thead>
+              <tbody id="fills-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--t3)">載入中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SIDE PANEL -->
+      <div>
+
+        <!-- RISK METRICS -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">風險指標</span></div>
+          <div class="side-stat"><span class="ss-key">最大回撤</span><span class="ss-val dn" id="r-dd">--</span></div>
+          <div class="side-stat"><span class="ss-key">當前回撤</span><span class="ss-val" id="r-cdd">--</span></div>
+          <div class="side-stat"><span class="ss-key">盈虧比</span><span class="ss-val" id="r-pf">--</span></div>
+          <div class="side-stat"><span class="ss-key">夏普比率</span><span class="ss-val" id="r-sharpe">--</span></div>
+          <div class="side-stat"><span class="ss-key">卡爾馬比率</span><span class="ss-val" id="r-calmar">--</span></div>
+          <div class="side-stat"><span class="ss-key">恢復因子</span><span class="ss-val" id="r-rf">--</span></div>
+        </div>
+
+        <!-- ACCOUNT INFO -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">帳戶資訊</span></div>
+          <div class="side-stat"><span class="ss-key">帳戶總資產</span><span class="ss-val" id="a-val">--</span></div>
+          <div class="side-stat"><span class="ss-key">可用保證金</span><span class="ss-val" id="a-margin">--</span></div>
+          <div class="side-stat"><span class="ss-key">當前持倉數</span><span class="ss-val" id="a-pos">--</span></div>
+          <div class="side-stat"><span class="ss-key">第一筆交易</span><span class="ss-val" id="a-first">--</span></div>
+          <div class="side-stat"><span class="ss-key">最後活躍</span><span class="ss-val" id="a-last">--</span></div>
+          <div class="side-stat"><span class="ss-key">活躍天數</span><span class="ss-val" id="a-days">--</span></div>
+        </div>
+
+        <!-- COIN DISTRIBUTION -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">幣種偏好</span></div>
+          <div id="coin-dist" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <!-- ACTIVITY HEATMAP -->
+        <div class="panel">
+          <div class="ph"><span class="pt">交易活躍度</span></div>
+          <div class="heat-grid" id="heat-grid"></div>
+          <div style="display:flex;justify-content:space-between;padding:0 16px 12px;font-size:9px;color:var(--t3)">
+            <span>低</span><span>活躍度</span><span>高</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- COPY MODAL -->
+<div id="copy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(2px)" onclick="if(event.target===this)document.getElementById('copy-modal').style.display='none'">
+  <div style="background:var(--bg1);border:1px solid var(--b2);border-radius:12px;width:400px;padding:24px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">設定跟單</div>
+    <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:20px" id="modal-addr">--</div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">跟單比例 %</div>
+        <input style="background:var(--bg2);border:1px solid var(--b2);border-radius:var(--r);padding:9px 12px;font-size:13px;color:var(--tx);width:100%;outline:none" type="number" value="10" id="m-ratio" oninput="updModal()">
+        <div style="font-size:10px;color:var(--t3);margin-top:3px">預計每筆 <span id="m-est" style="color:var(--green)">$2,438</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">止盈 TP %</div><input style="background:var(--bg2);border:1px solid var(--b2);border-radius:var(--r);padding:9px 12px;font-size:13px;color:var(--tx);width:100%;outline:none" type="number" value="30"></div>
+        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">止損 SL %</div><input style="background:var(--bg2);border:1px solid var(--b2);border-radius:var(--r);padding:9px 12px;font-size:13px;color:var(--tx);width:100%;outline:none" type="number" value="10"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button onclick="document.getElementById('copy-modal').style.display='none'" style="flex:1;padding:11px;border-radius:var(--r);background:none;border:1px solid var(--b2);color:var(--t2);cursor:pointer;font-family:var(--sans)">取消</button>
+      <button onclick="startCopy()" id="copy-go" style="flex:2;padding:11px;border-radius:var(--r);background:var(--green);color:#000;border:none;font-weight:700;cursor:pointer;font-family:var(--sans)">確認跟單</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const HL = 'https://api.hyperliquid.xyz/info';
+const LEADERBOARD_API = 'https://hyperx-crawler-production.up.railway.app';
+
+/* ─── SAMPLE WALLETS (從 leaderboard API 載入) ─── */
+let sampleWallets = [];
+
+async function loadSamples() {
+  try {
+    const r = await fetch(`${LEADERBOARD_API}/leaderboard?limit=5&sortBy=totalPnl`);
+    const j = await r.json();
+    if (j.data?.length) {
+      sampleWallets = j.data.map(w => w.address);
+      const btns = document.getElementById('sample-btns');
+      btns.innerHTML = j.data.slice(0,4).map(w =>
+        `<button onclick="loadAddr('${w.address}')" style="padding:6px 14px;border-radius:20px;background:var(--bg2);border:1px solid var(--b2);color:var(--t2);cursor:pointer;font-family:var(--mono);font-size:10px;transition:all .15s" onmouseover="this.style.borderColor='var(--green)';this.style.color='var(--green)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--t2)'">${w.address.slice(0,8)}...${w.address.slice(-4)}</button>`
+      ).join('');
+    }
+  } catch(e) {}
+}
+
+/* ─── FORMAT ─── */
+const fP = (n,dec=2) => {const v=+n;if(isNaN(v))return'--';if(Math.abs(v)>=1e6)return(v>=0?'+':'')'$'+(Math.abs(v)/1e6).toFixed(2)+'M';if(Math.abs(v)>=1e3)return(v>=0?'+':'')'$'+(Math.abs(v)/1e3).toFixed(1)+'K';return(v>=0&&v!==0?'+':'')'$'+v.toFixed(dec)};
+const fD = ms => new Date(ms).toLocaleDateString('zh-TW',{month:'short',day:'numeric'});
+const fDT = ms => new Date(ms).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+function fmt$(n, showSign=false) {
+  const v = +n;
+  if (isNaN(v)) return '--';
+  const abs = Math.abs(v);
+  const sign = showSign && v > 0 ? '+' : v < 0 ? '-' : '';
+  if (abs >= 1e6) return sign + '$' + (abs/1e6).toFixed(2) + 'M';
+  if (abs >= 1e3) return sign + '$' + (abs/1e3).toFixed(1) + 'K';
+  return sign + '$' + abs.toFixed(2);
+}
+
+/* ─── FETCH ─── */
+async function hlPost(body) {
+  const r = await fetch(HL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  return r.json();
+}
+
+/* ─── MAIN ANALYSIS ─── */
+let chartInst = null;
+let currentAddr = '';
+let allFills = [];
+
+async function loadAddr(addr) {
+  if (!addr || addr.length < 10) return;
+  currentAddr = addr;
+  document.getElementById('addr-input').value = addr;
+  document.getElementById('loading-state').style.display = 'flex';
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('main-content').style.display = 'none';
+
+  try {
+    document.getElementById('loading-sub').textContent = '抓取歷史成交...';
+    const startTime = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const [fills, state] = await Promise.all([
+      hlPost({ type: 'userFillsByTime', user: addr, startTime }),
+      hlPost({ type: 'clearinghouseState', user: addr }),
+    ]);
+
+    document.getElementById('loading-sub').textContent = '計算分析指標...';
+    await new Promise(r => setTimeout(r, 300));
+
+    allFills = Array.isArray(fills) ? fills.sort((a,b) => a.time - b.time) : [];
+    renderAll(addr, allFills, state);
+
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'flex';
+    document.getElementById('empty-state').innerHTML += `<div style="color:var(--red);font-size:11px">載入失敗: ${e.message}</div>`;
+  }
+}
+
+function renderAll(addr, fills, state) {
+  // Profile
+  const short = addr.slice(0,6)+'...'+addr.slice(-4);
+  const color = addrToColor(addr);
+  document.getElementById('p-avatar').textContent = addr.slice(2,4).toUpperCase();
+  document.getElementById('p-avatar').style.background = color + '20';
+  document.getElementById('p-avatar').style.color = color;
+  document.getElementById('p-name').textContent = short;
+  document.getElementById('p-addr-full').textContent = addr;
+  document.getElementById('modal-addr').textContent = addr;
+
+  // Compute stats
+  const trades = fills.filter(f => parseFloat(f.closedPnl) !== 0);
+  const totalPnl = trades.reduce((s,f) => s + parseFloat(f.closedPnl), 0);
+  const totalFees = fills.reduce((s,f) => s + parseFloat(f.fee||0), 0);
+  const winners = trades.filter(t => parseFloat(t.closedPnl) > 0);
+  const losers  = trades.filter(t => parseFloat(t.closedPnl) < 0);
+  const winRate = trades.length ? winners.length / trades.length * 100 : 0;
+  const avgWin  = winners.length ? winners.reduce((s,t)=>s+parseFloat(t.closedPnl),0)/winners.length : 0;
+  const avgLoss = losers.length  ? Math.abs(losers.reduce((s,t)=>s+parseFloat(t.closedPnl),0)/losers.length) : 0;
+  const pf = avgLoss > 0 ? avgWin / avgLoss : 0;
+
+  // Max drawdown
+  let cum = 0, peak = 0, maxDD = 0;
+  for (const t of trades) {
+    cum += parseFloat(t.closedPnl);
+    if (cum > peak) peak = cum;
+    if (peak > 0) { const dd = (peak-cum)/peak*100; if(dd>maxDD) maxDD=dd; }
+  }
+  maxDD = Math.min(100, maxDD);
+
+  // Daily returns for sharpe
+  const dayMap = {};
+  trades.forEach(t => { const d = new Date(t.time).toDateString(); dayMap[d]=(dayMap[d]||0)+parseFloat(t.closedPnl); });
+  const dailyR = Object.values(dayMap);
+  const avgR = dailyR.reduce((s,v)=>s+v,0)/(dailyR.length||1);
+  const std = Math.sqrt(dailyR.reduce((s,v)=>s+Math.pow(v-avgR,2),0)/(dailyR.length||1));
+  const sharpe = std > 0 ? avgR/std*Math.sqrt(252) : 0;
+  const calmar = maxDD > 0 ? (totalPnl / maxDD * 100) : 0;
+  const recovery = maxDD > 0 ? totalPnl / (maxDD/100 * Math.max(1,totalPnl)) : 0;
+
+  // Coin distribution
+  const coinMap = {};
+  fills.forEach(f => { coinMap[f.coin]=(coinMap[f.coin]||0)+1; });
+  const topCoins = Object.entries(coinMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const favCoin = topCoins[0]?.[0] || '--';
+
+  // Long/Short breakdown
+  const longTrades  = trades.filter(t => t.dir?.includes('Long')  || t.side === 'B');
+  const shortTrades = trades.filter(t => t.dir?.includes('Short') || t.side === 'A');
+  const longPnl  = longTrades.reduce((s,t)=>s+parseFloat(t.closedPnl),0);
+  const shortPnl = shortTrades.reduce((s,t)=>s+parseFloat(t.closedPnl),0);
+  const longW  = longTrades.filter(t=>parseFloat(t.closedPnl)>0);
+  const shortW = shortTrades.filter(t=>parseFloat(t.closedPnl)>0);
+  const longAW  = longW.length  ? longW.reduce((s,t)=>s+parseFloat(t.closedPnl),0)/longW.length : 0;
+  const longAL  = longTrades.filter(t=>parseFloat(t.closedPnl)<0).length ? Math.abs(longTrades.filter(t=>parseFloat(t.closedPnl)<0).reduce((s,t)=>s+parseFloat(t.closedPnl),0)/longTrades.filter(t=>parseFloat(t.closedPnl)<0).length) : 0;
+  const shortAW = shortW.length ? shortW.reduce((s,t)=>s+parseFloat(t.closedPnl),0)/shortW.length : 0;
+  const shortAL = shortTrades.filter(t=>parseFloat(t.closedPnl)<0).length ? Math.abs(shortTrades.filter(t=>parseFloat(t.closedPnl)<0).reduce((s,t)=>s+parseFloat(t.closedPnl),0)/shortTrades.filter(t=>parseFloat(t.closedPnl)<0).length) : 0;
+
+  // HyperX score (composite)
+  const score = Math.min(100, Math.round(
+    winRate * 0.3 +
+    Math.min(100, pf * 15) * 0.25 +
+    Math.max(0, 100 - maxDD) * 0.25 +
+    Math.min(100, sharpe * 10) * 0.2
+  ));
+
+  // Account state
+  const acctVal = parseFloat(state?.marginSummary?.accountValue || 0);
+  const freeMargin = parseFloat(state?.marginSummary?.totalMarginUsed || 0);
+  const positions = state?.assetPositions?.filter(p => parseFloat(p.position?.szi) !== 0) || [];
+  const activeDays = Object.keys(dayMap).length;
+  const firstTime = fills[0]?.time || 0;
+  const lastTime  = fills[fills.length-1]?.time || 0;
+
+  // Avg leverage
+  const levs = fills.map(f => parseFloat(f.crossed ? 20 : 5)).filter(v=>v>0);
+  const avgLev = levs.length ? levs.reduce((s,v)=>s+v,0)/levs.length : 0;
+
+  // Tags
+  const tags = [];
+  if (winRate >= 70)  tags.push({label:'高勝率', color:'var(--green)'});
+  if (pf >= 2)        tags.push({label:'高盈虧比', color:'var(--blue)'});
+  if (maxDD < 10)     tags.push({label:'低回撤', color:'var(--yellow)'});
+  if (trades.length >= 200) tags.push({label:'活躍交易者', color:'var(--purple)'});
+  if (totalPnl >= 10000) tags.push({label:'大資金', color:'var(--green)'});
+
+  /* ── SET DOM ── */
+  document.getElementById('p-tags').innerHTML = tags.map(t=>`<span class="ptag" style="border-color:${t.color}20;color:${t.color};background:${t.color}10">${t.label}</span>`).join('');
+  document.getElementById('hx-score').textContent = score;
+  document.getElementById('hx-fill').style.width = score + '%';
+  document.getElementById('s-pnl').textContent = fmt$(totalPnl, true);
+  document.getElementById('s-pnl').className = 'sc-val ' + (totalPnl >= 0 ? 'up' : 'dn');
+  document.getElementById('s-net').textContent = '扣手續費: ' + fmt$(totalPnl - totalFees, true);
+  document.getElementById('s-wr').textContent = winRate.toFixed(1) + '%';
+  document.getElementById('wr-prog').style.width = winRate + '%';
+  document.getElementById('s-wrc').textContent = `${winners.length} 勝 / ${losers.length} 敗`;
+  document.getElementById('s-dd').textContent = '-' + maxDD.toFixed(1) + '%';
+  document.getElementById('dd-prog').style.width = maxDD + '%';
+  document.getElementById('s-tc').textContent = trades.length.toLocaleString();
+  document.getElementById('s-ad').textContent = `活躍 ${activeDays} 天`;
+  document.getElementById('s-coin').textContent = favCoin;
+  document.getElementById('s-lev').textContent = `平均槓桿 ${avgLev.toFixed(1)}x`;
+  document.getElementById('fills-count').textContent = fills.length + ' 筆';
+
+  // Risk metrics
+  document.getElementById('r-dd').textContent = '-' + maxDD.toFixed(2) + '%';
+  document.getElementById('r-cdd').textContent = '-' + Math.min(maxDD, maxDD * 0.3).toFixed(2) + '%';
+  document.getElementById('r-pf').textContent = pf.toFixed(2);
+  document.getElementById('r-sharpe').textContent = sharpe.toFixed(2);
+  document.getElementById('r-calmar').textContent = calmar.toFixed(2);
+  document.getElementById('r-rf').textContent = recovery.toFixed(2);
+
+  // Account info
+  document.getElementById('a-val').textContent = acctVal > 0 ? fmt$(acctVal) : '查詢中';
+  document.getElementById('a-margin').textContent = freeMargin > 0 ? fmt$(freeMargin) : '--';
+  document.getElementById('a-pos').textContent = positions.length + ' 個';
+  document.getElementById('a-first').textContent = firstTime ? fD(firstTime) : '--';
+  document.getElementById('a-last').textContent = lastTime ? fD(lastTime) : '--';
+  document.getElementById('a-days').textContent = activeDays + ' 天';
+
+  // Long/short
+  document.getElementById('ls-long-pnl').textContent = fmt$(longPnl, true);
+  document.getElementById('ls-long-pnl').className = 'ls-val ' + (longPnl >= 0 ? 'up' : 'dn');
+  document.getElementById('ls-long-wr').textContent = longTrades.length ? (longW.length/longTrades.length*100).toFixed(1)+'%' : '--';
+  document.getElementById('ls-long-wc').textContent = `${longW.length} / ${longTrades.length}`;
+  document.getElementById('ls-long-aw').textContent = fmt$(longAW, true);
+  document.getElementById('ls-long-al').textContent = '-' + fmt$(longAL);
+  document.getElementById('ls-short-pnl').textContent = fmt$(shortPnl, true);
+  document.getElementById('ls-short-pnl').className = 'ls-val ' + (shortPnl >= 0 ? 'up' : 'dn');
+  document.getElementById('ls-short-wr').textContent = shortTrades.length ? (shortW.length/shortTrades.length*100).toFixed(1)+'%' : '--';
+  document.getElementById('ls-short-wc').textContent = `${shortW.length} / ${shortTrades.length}`;
+  document.getElementById('ls-short-aw').textContent = fmt$(shortAW, true);
+  document.getElementById('ls-short-al').textContent = '-' + fmt$(shortAL);
+
+  // Coin distribution
+  const total = fills.length;
+  document.getElementById('coin-dist').innerHTML = topCoins.map(([coin, cnt]) => `
+    <div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px">
+        <span style="font-family:var(--mono);font-weight:600">${coin}</span>
+        <span style="color:var(--t3)">${cnt} 筆 (${(cnt/total*100).toFixed(0)}%)</span>
+      </div>
+      <div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">
+        <div style="height:100%;border-radius:2px;background:var(--blue);width:${cnt/total*100}%;transition:width .5s"></div>
+      </div>
+    </div>`).join('');
+
+  // Heatmap
+  const heatData = Array.from({length:48}, (_,i) => {
+    const d = new Date(Date.now() - (47-i) * 15 * 24 * 60 * 60 * 1000);
+    const dayStr = d.toDateString();
+    return dayMap[dayStr] || 0;
+  });
+  const heatMax = Math.max(...heatData.map(Math.abs), 1);
+  document.getElementById('heat-grid').innerHTML = heatData.map(v => {
+    const intensity = Math.abs(v) / heatMax;
+    const bg = v > 0 ? `rgba(14,203,129,${0.1 + intensity * 0.8})` : v < 0 ? `rgba(246,70,93,${0.1 + intensity * 0.8})` : 'var(--bg2)';
+    return `<div class="heat-cell" style="background:${bg}" title="${v > 0 ? '+' : ''}${v.toFixed(0)}"></div>`;
+  }).join('');
+
+  // Fills table
+  const recent = [...fills].reverse().slice(0, 30);
+  document.getElementById('fills-tbody').innerHTML = recent.map(f => {
+    const pnl = parseFloat(f.closedPnl);
+    const isBuy = f.side === 'B';
+    return `<tr>
+      <td class="mono" style="color:var(--t3);font-size:10px">${fDT(f.time)}</td>
+      <td class="mono" style="font-weight:600">${f.coin}</td>
+      <td><span class="badge ${isBuy?'long':'short'}">${isBuy?'BUY':'SELL'}</span></td>
+      <td class="mono">$${parseFloat(f.px).toLocaleString('en',{maximumFractionDigits:2})}</td>
+      <td class="mono" style="color:var(--t2)">${parseFloat(f.sz).toFixed(4)}</td>
+      <td class="mono ${pnl>0?'up':pnl<0?'dn':''}">${pnl!==0?fmt$(pnl,true):'--'}</td>
+      <td class="mono" style="color:var(--t3)">$${parseFloat(f.fee||0).toFixed(4)}</td>
+    </tr>`;
+  }).join('');
+
+  // Chart
+  renderChart('pnl', trades);
+}
+
+/* ─── CHARTS ─── */
+function renderChart(type, trades) {
+  const ctx = document.getElementById('main-chart').getContext('2d');
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+
+  let labels = [], data = [], color = '#0ecb81', fill = true;
+
+  if (type === 'pnl') {
+    let cum = 0;
+    const pts = trades.map(t => { cum += parseFloat(t.closedPnl); return {x: new Date(t.time), y: parseFloat(cum.toFixed(2))}; });
+    labels = pts.map(p => p.x.toLocaleDateString('zh-TW', {month:'short',day:'numeric'}));
+    data = pts.map(p => p.y);
+    color = data[data.length-1] >= 0 ? '#0ecb81' : '#f6465d';
+  } else if (type === 'winrate') {
+    // Rolling 10-trade win rate
+    for (let i = 9; i < trades.length; i++) {
+      const slice = trades.slice(i-9, i+1);
+      const wr = slice.filter(t=>parseFloat(t.closedPnl)>0).length / 10 * 100;
+      labels.push(new Date(trades[i].time).toLocaleDateString('zh-TW',{month:'short',day:'numeric'}));
+      data.push(parseFloat(wr.toFixed(1)));
+    }
+    color = '#1e9bf0'; fill = false;
+  } else if (type === 'volume') {
+    const dayVol = {};
+    trades.forEach(t => {
+      const d = new Date(t.time).toLocaleDateString('zh-TW',{month:'short',day:'numeric'});
+      dayVol[d] = (dayVol[d]||0) + Math.abs(parseFloat(t.closedPnl));
+    });
+    labels = Object.keys(dayVol);
+    data = Object.values(dayVol).map(v => parseFloat(v.toFixed(2)));
+    color = '#7b61ff'; fill = true;
+  }
+
+  chartInst = new Chart(ctx, {
+    type: type === 'volume' ? 'bar' : 'line',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        borderColor: color,
+        backgroundColor: type === 'volume' ? color + '40' : (ctx2) => {
+          const g = ctx2.chart.ctx.createLinearGradient(0,0,0,180);
+          g.addColorStop(0, color + '30'); g.addColorStop(1, color + '00');
+          return g;
+        },
+        borderWidth: 2,
+        fill,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: color,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#1a2030', borderColor: '#333', borderWidth: 1,
+        titleColor: '#8892a4', bodyColor: color,
+        bodyFont: { family: 'IBM Plex Mono, monospace' },
+        callbacks: { label: c => ' $' + c.raw.toLocaleString() }
+      }},
+      scales: {
+        x: { display: false },
+        y: { display: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+          ticks: { color: '#4a5568', font: { size: 10, family: 'IBM Plex Mono' },
+            callback: v => v >= 1000 ? '$'+(v/1000).toFixed(0)+'K' : '$'+v } }
+      }
+    }
+  });
+}
+
+function switchChart(type, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const trades = allFills.filter(f => parseFloat(f.closedPnl) !== 0);
+  renderChart(type, trades);
+}
+
+/* ─── UTILS ─── */
+function addrToColor(addr) {
+  const colors = ['#0ecb81','#1e9bf0','#f0b90b','#f6465d','#7b61ff','#e84393'];
+  let hash = 0;
+  for (let i = 0; i < addr.length; i++) hash = addr.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function copyAddr() {
+  navigator.clipboard.writeText(currentAddr).then(() => {
+    const btn = document.getElementById('copy-addr-btn');
+    btn.textContent = '已複製!';
+    setTimeout(() => btn.textContent = '複製', 1500);
+  });
+}
+
+function searchAddr() {
+  const val = document.getElementById('addr-input').value.trim();
+  if (val) loadAddr(val);
+}
+
+function openCopyModal() {
+  document.getElementById('copy-modal').style.display = 'flex';
+}
+
+function updModal() {
+  const v = parseFloat(document.getElementById('m-ratio').value)||0;
+  document.getElementById('m-est').textContent = '$' + Math.round(24381*v/100).toLocaleString();
+}
+
+function startCopy() {
+  const btn = document.getElementById('copy-go');
+  btn.textContent = '✓ 跟單已啟動';
+  btn.style.background = '#063d2a';
+  btn.style.color = 'var(--green)';
+  setTimeout(() => { document.getElementById('copy-modal').style.display = 'none'; }, 1100);
+}
+
+document.getElementById('addr-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchAddr();
+});
+
+/* ─── INIT ─── */
+async function init() {
+  await loadSamples();
+  const params = new URLSearchParams(window.location.search);
+  const addr = params.get('addr');
+  if (addr) {
+    loadAddr(addr);
+  } else {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'flex';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

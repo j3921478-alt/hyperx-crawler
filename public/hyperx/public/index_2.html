@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HyperX — Copy Trading Platform</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0c10; --s1: #111318; --s2: #181c24; --s3: #1e2230;
+  --b1: rgba(255,255,255,0.06); --b2: rgba(255,255,255,0.12); --b3: rgba(255,255,255,0.18);
+  --tx: #eef0f4; --t2: #8b92a0; --t3: #4a5060;
+  --green: #00d4a0; --red: #ff4d5e; --blue: #3b8efc; --yellow: #f5a623; --purple: #a78bfa;
+  --mono: 'DM Mono', 'Courier New', monospace;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+html, body { height: 100%; background: var(--bg); color: var(--tx); font-family: var(--sans); overflow: hidden; }
+
+/* LAYOUT */
+.app { display: flex; height: 100vh; }
+.sidebar { width: 200px; min-width: 200px; background: var(--s1); border-right: 1px solid var(--b1); display: flex; flex-direction: column; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 13px 20px; background: var(--s1); border-bottom: 1px solid var(--b1); flex-shrink: 0; }
+.content { flex: 1; overflow-y: auto; padding: 18px 20px; }
+
+/* SIDEBAR */
+.logo { display: flex; align-items: center; gap: 8px; padding: 16px 16px 18px; border-bottom: 1px solid var(--b1); }
+.logo-icon { width: 26px; height: 26px; background: var(--green); border-radius: 5px; display: grid; place-items: center; }
+.logo-icon svg { width: 14px; height: 14px; }
+.logo-name { font-family: var(--mono); font-size: 13px; letter-spacing: 2px; font-weight: 700; }
+.nav { padding: 10px 8px; flex: 1; }
+.nav-sec { font-size: 9px; letter-spacing: 1.8px; color: var(--t3); padding: 10px 8px 4px; text-transform: uppercase; }
+.nb { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border-radius: 7px; border: none; background: none; color: var(--t2); font-size: 12.5px; font-family: var(--sans); cursor: pointer; transition: all .12s; margin: 1px 0; text-align: left; }
+.nb:hover { background: var(--s2); color: var(--tx); }
+.nb.active { background: rgba(0,212,160,.1); color: var(--green); }
+.nb svg { width: 13px; height: 13px; flex-shrink: 0; }
+.badge { margin-left: auto; font-size: 9px; padding: 2px 6px; border-radius: 10px; background: rgba(0,212,160,.15); color: var(--green); font-family: var(--mono); }
+.badge-r { background: rgba(255,77,94,.15); color: var(--red); }
+.sidebar-foot { padding: 14px 16px; border-top: 1px solid var(--b1); }
+.foot-lbl { font-size: 9px; color: var(--t3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.foot-val { font-family: var(--mono); font-size: 18px; color: var(--green); font-weight: 700; }
+.foot-sub { font-size: 10px; color: var(--t3); margin-top: 2px; }
+
+/* TOPBAR */
+.pg-title { font-size: 14px; font-weight: 500; }
+.tb-right { display: flex; align-items: center; gap: 10px; }
+.chip { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-family: var(--mono); border: 1px solid; }
+.chip-g { border-color: rgba(0,212,160,.3); color: var(--green); background: rgba(0,212,160,.07); }
+.chip-b { border-color: rgba(59,142,252,.3); color: var(--blue); background: rgba(59,142,252,.07); }
+.ws-status { display: flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--mono); }
+.dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-y { background: var(--yellow); animation: blink 1s infinite; }
+.dot-g { background: var(--green); animation: blink 2.5s infinite; }
+.dot-r { background: var(--red); }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.25;} }
+
+/* PAGES */
+.page { display: none; }
+.page.active { display: block; }
+
+/* GRIDS */
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
+.g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+.row2 { display: grid; grid-template-columns: 1fr 340px; gap: 14px; margin-bottom: 16px; }
+
+/* CARDS */
+.card { background: var(--s1); border: 1px solid var(--b1); border-radius: 11px; overflow: hidden; }
+.card-hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid var(--b1); }
+.card-ti { font-size: 12px; font-weight: 500; }
+.card-body { padding: 14px 15px; }
+
+/* STAT CARDS */
+.stat { background: var(--s1); border: 1px solid var(--b1); border-radius: 10px; padding: 13px 15px; }
+.stat-lbl { font-size: 9px; color: var(--t3); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+.stat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; line-height: 1; transition: color .3s; }
+.stat-chg { font-size: 10px; color: var(--t3); margin-top: 5px; }
+.stat-chg.up { color: var(--green); }
+.stat-chg.dn { color: var(--red); }
+
+/* PRICE FLASH ANIMATION */
+@keyframes flash-up { 0%{background:rgba(0,212,160,.25);} 100%{background:transparent;} }
+@keyframes flash-dn { 0%{background:rgba(255,77,94,.25);} 100%{background:transparent;} }
+.flash-up { animation: flash-up .6s ease-out; }
+.flash-dn { animation: flash-dn .6s ease-out; }
+.price-up { color: var(--green) !important; }
+.price-dn { color: var(--red) !important; }
+
+/* MARKET TABLE */
+.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tbl th { text-align: left; padding: 0 12px 9px; font-size: 9px; letter-spacing: 1px; color: var(--t3); text-transform: uppercase; font-weight: 500; }
+.tbl td { padding: 9px 12px; border-top: 1px solid var(--b1); vertical-align: middle; transition: background .15s; }
+.tbl tr:hover td { background: var(--s2); }
+.tbl tr:first-child td { border-top: none; }
+.mono { font-family: var(--mono); }
+
+/* BADGES */
+.side { font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 700; font-family: var(--mono); }
+.long { background: rgba(0,212,160,.12); color: var(--green); }
+.short { background: rgba(255,77,94,.12); color: var(--red); }
+.lev { color: var(--yellow); font-family: var(--mono); font-size: 10px; }
+
+/* TICKER STRIP */
+.ticker-wrap { overflow: hidden; border-bottom: 1px solid var(--b1); background: var(--s2); height: 32px; }
+.ticker-track { display: flex; gap: 0; animation: scroll-left 30s linear infinite; width: max-content; }
+.ticker-track:hover { animation-play-state: paused; }
+@keyframes scroll-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ticker-item { display: flex; align-items: center; gap: 7px; padding: 0 18px; height: 32px; border-right: 1px solid var(--b1); white-space: nowrap; }
+.tk-sym { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--t2); }
+.tk-px { font-family: var(--mono); font-size: 11px; }
+.tk-chg { font-size: 10px; font-family: var(--mono); }
+
+/* TRADE FEED */
+.trade-feed { display: flex; flex-direction: column; gap: 0; max-height: 260px; overflow-y: auto; }
+.trade-row { display: flex; align-items: center; gap: 8px; padding: 6px 15px; border-bottom: 1px solid var(--b1); font-family: var(--mono); font-size: 11px; animation: slide-in .2s ease-out; }
+.trade-row:last-child { border-bottom: none; }
+@keyframes slide-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.tr-time { color: var(--t3); font-size: 10px; width: 60px; flex-shrink: 0; }
+.tr-side { width: 38px; flex-shrink: 0; }
+.tr-price { flex: 1; }
+.tr-size { color: var(--t2); text-align: right; }
+
+/* TRADERS */
+.trader-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--b1); cursor: pointer; transition: background .1s; }
+.trader-item:last-child { border-bottom: none; }
+.trader-item:hover { background: var(--s2); }
+.t-av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.t-inf { flex: 1; min-width: 0; }
+.t-nm { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-ad { font-family: var(--mono); font-size: 9px; color: var(--t3); margin-top: 1px; }
+.t-rt { text-align: right; flex-shrink: 0; }
+.t-pnl { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+.t-wr { font-size: 9px; color: var(--t3); margin-top: 2px; }
+.copy-btn { padding: 4px 10px; border-radius: 5px; font-size: 10px; font-weight: 600; border: 1px solid rgba(0,212,160,.3); background: rgba(0,212,160,.07); color: var(--green); cursor: pointer; transition: all .12s; white-space: nowrap; flex-shrink: 0; }
+.copy-btn:hover { background: rgba(0,212,160,.15); }
+.copy-btn.on { background: var(--green); color: #000; border-color: var(--green); }
+
+/* SPARKLINE */
+.sp { display: inline-flex; gap: 2px; align-items: flex-end; height: 18px; vertical-align: middle; }
+.sp-b { width: 3px; border-radius: 1px; }
+
+/* PRICE GRID */
+.price-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.pi { background: var(--s2); border-radius: 8px; padding: 10px 12px; cursor: default; }
+.pi-sym { font-family: var(--mono); font-size: 10px; color: var(--t3); margin-bottom: 4px; }
+.pi-px { font-family: var(--mono); font-size: 14px; font-weight: 700; transition: color .3s; }
+.pi-chg { font-size: 10px; margin-top: 3px; font-family: var(--mono); }
+
+/* MODAL */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 300; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--s1); border: 1px solid var(--b2); border-radius: 14px; width: 370px; max-height: 90vh; overflow-y: auto; }
+.modal-hd { padding: 18px 20px 14px; border-bottom: 1px solid var(--b1); display: flex; align-items: flex-start; justify-content: space-between; }
+.modal-close { background: none; border: none; color: var(--t3); font-size: 20px; cursor: pointer; line-height: 1; }
+.modal-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.fl { display: flex; flex-direction: column; gap: 5px; }
+.fl label { font-size: 9px; color: var(--t3); text-transform: uppercase; letter-spacing: .8px; }
+.fi { background: var(--s2); border: 1px solid var(--b2); border-radius: 7px; padding: 8px 11px; font-size: 12px; color: var(--tx); font-family: var(--sans); outline: none; }
+.fi:focus { border-color: var(--green); }
+.fs { background: var(--s2); border: 1px solid var(--b2); border-radius: 7px; padding: 8px 11px; font-size: 12px; color: var(--tx); font-family: var(--sans); outline: none; appearance: none; }
+.tg { display: flex; gap: 5px; }
+.to { flex: 1; padding: 6px; border-radius: 6px; font-size: 11px; text-align: center; cursor: pointer; border: 1px solid var(--b2); color: var(--t2); transition: all .12s; }
+.to.sel { border-color: var(--green); color: var(--green); background: rgba(0,212,160,.08); }
+.rbar { height: 3px; background: var(--s3); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.rfill { height: 100%; border-radius: 2px; transition: width .3s, background .3s; }
+.go-btn { width: 100%; padding: 11px; border-radius: 9px; font-size: 13px; font-weight: 700; background: var(--green); color: #000; border: none; cursor: pointer; transition: opacity .15s; }
+.go-btn:hover { opacity: .85; }
+.modal-foot { padding: 0 20px 20px; }
+
+/* MISC */
+.spin { width: 24px; height: 24px; border: 2px solid var(--b2); border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px; }
+.conn-bar { font-family: var(--mono); font-size: 11px; color: var(--t3); padding: 8px 15px; border-bottom: 1px solid var(--b1); display: flex; align-items: center; gap: 8px; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.fc { padding: 4px 10px; border-radius: 20px; font-size: 11px; cursor: pointer; border: 1px solid var(--b2); color: var(--t2); background: none; transition: all .12s; }
+.fc.sel { border-color: var(--green); color: var(--green); background: rgba(0,212,160,.07); }
+.search-input { background: var(--s2); border: 1px solid var(--b2); border-radius: 7px; padding: 5px 10px; font-size: 11px; color: var(--tx); font-family: var(--sans); outline: none; width: 180px; margin-left: auto; }
+.search-input:focus { border-color: var(--green); }
+.my-copy-card { background: var(--s1); border: 1px solid var(--b1); border-radius: 11px; padding: 16px; margin-bottom: 12px; }
+.mcs-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.mcs { background: var(--s2); border-radius: 7px; padding: 9px 10px; }
+.mcs-lbl { font-size: 9px; color: var(--t3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 3px; }
+.mcs-val { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+.stop-btn { padding: 4px 10px; border-radius: 5px; font-size: 10px; cursor: pointer; border: 1px solid rgba(255,77,94,.3); background: rgba(255,77,94,.07); color: var(--red); }
+.feed-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--b1); font-family: var(--mono); font-size: 11px; }
+.feed-row:last-child { border-bottom: none; }
+.feed-dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 14 14" fill="#000"><path d="M1 7l3-3 3 3 3-3v6H1z"/></svg></div>
+      <span class="logo-name">HYPERX</span>
+    </div>
+    <div class="nav">
+      <div class="nav-sec">主功能</div>
+      <button class="nb active" onclick="nav('dashboard',this)">
+        <svg viewBox="0 0 13 13" fill="currentColor"><rect x="1" y="1" width="5" height="5" rx="1.5" opacity=".8"/><rect x="7" y="1" width="5" height="5" rx="1.5" opacity=".8"/><rect x="1" y="7" width="5" height="5" rx="1.5" opacity=".8"/><rect x="7" y="7" width="5" height="5" rx="1.5" opacity=".8"/></svg>
+        儀表板
+      </button>
+      <button class="nb" onclick="nav('market',this)">
+        <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,10 3.5,6 6,7.5 9,3 12,5"/></svg>
+        即時行情
+        <span class="badge" id="ws-badge">WS</span>
+      </button>
+      <button class="nb" onclick="nav('discover',this)">
+        <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="5.5" r="3.5"/><line x1="8.5" y1="8.5" x2="12" y2="12"/></svg>
+        發現交易者
+      </button>
+      <button class="nb" onclick="nav('mycopy',this)">
+        <svg viewBox="0 0 13 13" fill="currentColor"><rect x="1" y="2" width="11" height="2" rx="1" opacity=".8"/><rect x="1" y="5.5" width="7.5" height="2" rx="1" opacity=".8"/><rect x="1" y="9" width="5" height="2" rx="1" opacity=".8"/></svg>
+        我的跟單
+        <span class="badge">2</span>
+      </button>
+      <div class="nav-sec">工具</div>
+      <button class="nb" onclick="nav('monitor',this)">
+        <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="11" height="8" rx="1.5"/><line x1="4.5" y1="9" x2="3.5" y2="12"/><line x1="8.5" y1="9" x2="9.5" y2="12"/></svg>
+        監控中心
+        <span class="badge badge-r">3</span>
+      </button>
+      <button class="nb">
+        <svg viewBox="0 0 13 13" fill="currentColor" opacity=".8"><path d="M6.5 1L8 4.2 11.5 4.7 9 7.1 9.6 10.5 6.5 8.8 3.4 10.5 4 7.1 1.5 4.7 5 4.2z"/></svg>
+        Agent API
+      </button>
+    </div>
+    <div class="sidebar-foot">
+      <div class="foot-lbl">帳戶淨值</div>
+      <div class="foot-val">$24,381</div>
+      <div class="foot-sub">USDC · Hyperliquid</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TICKER STRIP -->
+    <div class="ticker-wrap">
+      <div class="ticker-track" id="ticker-track"></div>
+    </div>
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="pg-title" id="pg-title">儀表板</span>
+        <div class="ws-status">
+          <div class="dot dot-y" id="ws-dot"></div>
+          <span id="ws-lbl" style="color:var(--yellow);">連接中...</span>
+        </div>
+      </div>
+      <div class="tb-right">
+        <span id="last-update" style="font-size:10px;color:var(--t3);font-family:var(--mono);">--</span>
+        <span class="chip chip-b">Hyperliquid</span>
+        <span class="chip chip-g" id="conn-chip">REST</span>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page active">
+        <div class="g4">
+          <div class="stat" id="stat-eth">
+            <div class="stat-lbl">ETH-PERP</div>
+            <div class="stat-val blue" id="d-eth-px">--</div>
+            <div class="stat-chg" id="d-eth-chg">載入中...</div>
+          </div>
+          <div class="stat" id="stat-btc">
+            <div class="stat-lbl">BTC-PERP</div>
+            <div class="stat-val" id="d-btc-px">--</div>
+            <div class="stat-chg" id="d-btc-chg">載入中...</div>
+          </div>
+          <div class="stat" id="stat-sol">
+            <div class="stat-lbl">SOL-PERP</div>
+            <div class="stat-val" id="d-sol-px">--</div>
+            <div class="stat-chg" id="d-sol-chg">載入中...</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">未平倉量 BTC</div>
+            <div class="stat-val" style="color:var(--purple);" id="d-btc-oi">--</div>
+            <div class="stat-chg" id="d-btc-fr">資金費率...</div>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <div class="card" style="margin-bottom:14px;">
+              <div class="card-hd">
+                <span class="card-ti">當前持倉（模擬）</span>
+                <div class="ws-status"><div class="dot dot-g"></div><span style="color:var(--green);font-size:10px;">即時更新</span></div>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="tbl">
+                  <thead><tr>
+                    <th>交易對</th><th>方向</th><th>槓桿</th><th>入場價</th>
+                    <th>標記價</th><th>未實現盈虧</th><th>來源</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">ETH-PERP</td>
+                      <td><span class="side long">LONG</span></td>
+                      <td><span class="lev">5x</span></td>
+                      <td class="mono">$3,245</td>
+                      <td class="mono" id="pos-eth-mark">--</td>
+                      <td class="mono" id="pos-eth-pnl" style="color:var(--green);">--</td>
+                      <td style="font-size:10px;color:var(--t3);">Alpha Wolf</td>
+                    </tr>
+                    <tr>
+                      <td class="mono">SOL-PERP</td>
+                      <td><span class="side long">LONG</span></td>
+                      <td><span class="lev">10x</span></td>
+                      <td class="mono">$142.30</td>
+                      <td class="mono" id="pos-sol-mark">--</td>
+                      <td class="mono" id="pos-sol-pnl" style="color:var(--green);">--</td>
+                      <td style="font-size:10px;color:var(--t3);">Alpha Wolf</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-hd">
+                <span class="card-ti">市場行情（真實數據）</span>
+                <span id="upd-ts" style="font-size:10px;color:var(--t3);font-family:var(--mono);">--</span>
+              </div>
+              <div class="card-body">
+                <div class="price-grid" id="price-grid">
+                  <div class="loading" style="grid-column:span 3"><div class="spin"></div><span style="font-size:11px;color:var(--t3);">抓取數據...</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-ti">頂尖交易者</span>
+              <button onclick="nav('discover',document.querySelectorAll('.nb')[2])" style="font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;">全部 →</button>
+            </div>
+            <div id="top-traders"></div>
+            <div class="card-hd" style="margin-top:0;">
+              <span class="card-ti">即時成交</span>
+              <div class="ws-status"><div class="dot dot-g" id="trade-dot"></div><span style="font-size:10px;color:var(--green);">ETH-PERP</span></div>
+            </div>
+            <div class="trade-feed" id="trade-feed">
+              <div class="loading"><div class="spin"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MARKET PAGE -->
+      <div id="page-market" class="page">
+        <div class="card">
+          <div class="card-hd">
+            <span class="card-ti">全市場即時行情</span>
+            <div class="ws-status">
+              <div class="dot dot-g" id="mkt-dot"></div>
+              <span id="mkt-lbl" style="font-size:10px;color:var(--green);font-family:var(--mono);">即時更新</span>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="tbl">
+              <thead><tr>
+                <th>#</th><th>交易對</th><th>標記價</th><th>24h 漲跌</th>
+                <th>24h 量</th><th>資金費率</th><th>未平倉量</th>
+              </tr></thead>
+              <tbody id="market-body">
+                <tr><td colspan="7"><div class="loading"><div class="spin"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DISCOVER -->
+      <div id="page-discover" class="page">
+        <div class="filter-row">
+          <button class="fc sel" onclick="filt('all',this)">全部</button>
+          <button class="fc" onclick="filt('win',this)">勝率 >70%</button>
+          <button class="fc" onclick="filt('roi',this)">月收益 >100%</button>
+          <button class="fc" onclick="filt('dd',this)">低回撤</button>
+          <input class="search-input" placeholder="搜尋名稱或地址..." oninput="searchTrader(this.value)">
+        </div>
+        <div class="card">
+          <div style="overflow-x:auto;">
+            <table class="tbl">
+              <thead><tr>
+                <th>#</th><th>交易者</th><th>30天 PnL</th><th>收益率</th>
+                <th>勝率</th><th>最大回撤</th><th>交易次數</th><th>走勢</th><th>操作</th>
+              </tr></thead>
+              <tbody id="disc-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MY COPY -->
+      <div id="page-mycopy" class="page">
+        <div id="mycopy-list"></div>
+      </div>
+
+      <!-- MONITOR -->
+      <div id="page-monitor" class="page">
+        <div class="g3">
+          <div class="stat"><div class="stat-lbl">監控中錢包</div><div class="stat-val" style="color:var(--blue);">12</div></div>
+          <div class="stat"><div class="stat-lbl">今日警報</div><div class="stat-val" style="color:var(--red);">3</div></div>
+          <div class="stat"><div class="stat-lbl">鯨魚大單</div><div class="stat-val" style="color:var(--green);">7</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-ti">即時活動紀錄</span><div class="dot dot-g"></div></div>
+          <div class="card-body" id="feed-body"></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- COPY MODAL -->
+<div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-hd">
+      <div>
+        <div style="font-size:14px;font-weight:500;" id="m-name">交易者</div>
+        <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:2px;" id="m-addr">--</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fl">
+        <label>跟單模式</label>
+        <div class="tg" id="tg-mode">
+          <div class="to sel" onclick="selTg(this,'tg-mode')">比例模式</div>
+          <div class="to" onclick="selTg(this,'tg-mode')">固定金額</div>
+          <div class="to" onclick="selTg(this,'tg-mode')">固定槓桿</div>
+        </div>
+      </div>
+      <div class="fl">
+        <label>跟單比例 %</label>
+        <input class="fi" type="number" id="m-ratio" value="10" oninput="updRisk()">
+        <div style="font-size:10px;color:var(--t3);margin-top:3px;">預計每筆 <span id="m-est" style="color:var(--green);">$2,438</span></div>
+      </div>
+      <div class="fl">
+        <label>最大槓桿</label>
+        <select class="fs">
+          <option>跟隨交易者</option><option selected>≤ 5x</option>
+          <option>≤ 10x</option><option>≤ 20x</option>
+        </select>
+      </div>
+      <div class="fl">
+        <label>保證金範圍 (USDC)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <input class="fi" type="number" value="200" placeholder="最小">
+          <input class="fi" type="number" value="5000" placeholder="最大">
+        </div>
+      </div>
+      <div class="fl">
+        <label>止盈 / 止損 %</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <input class="fi" type="number" value="30" placeholder="TP +%">
+          <input class="fi" type="number" value="10" placeholder="SL -%">
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-bottom:3px;">
+            <span>風險評估</span><span id="risk-txt" style="color:var(--green);">低風險</span>
+          </div>
+          <div class="rbar"><div class="rfill" id="rfill" style="width:30%;background:var(--green);"></div></div>
+        </div>
+      </div>
+      <div class="fl">
+        <label>跟單範圍</label>
+        <div class="tg" id="tg-scope">
+          <div class="to sel" onclick="selTg(this,'tg-scope')">開+平倉</div>
+          <div class="to" onclick="selTg(this,'tg-scope')">僅開倉</div>
+          <div class="to" onclick="selTg(this,'tg-scope')">僅平倉</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="go-btn" id="go-btn" onclick="startCopy()">開始跟單</button></div>
+  </div>
+</div>
+
+<script>
+/* ─── CONFIG ─── */
+const HL_REST = 'https://api.hyperliquid.xyz/info';
+const HL_WS   = 'wss://api.hyperliquid.xyz/ws';
+const REFRESH_MS = 5000;
+const COINS_SHOW = ['BTC','ETH','SOL','ARB','AVAX','DOGE','BNB','OP','SUI','HYPE','LINK','MATIC'];
+
+/* ─── STATE ─── */
+let ws = null, wsReady = false, wsRetry = 0;
+let metaAssets = [];
+let prevPrices  = {};
+let tradeFeed   = [];
+
+const ETH_ENTRY = 3245, SOL_ENTRY = 142.3;
+
+/* ─── 真實數據來源：本機 API ─── */
+const LEADERBOARD_API = 'http://localhost:3001';
+let TRADERS = [];  // 從 API 載入，初始為空
+
+const COLORS = ['#00d4a0','#3b8efc','#f5a623','#ff4d5e','#a78bfa','#00d4a0','#3b8efc','#f5a623'];
+
+function walletToTrader(w, idx) {
+  const shortAddr = w.address.slice(0,6) + '...' + w.address.slice(-4);
+  const color = COLORS[idx % COLORS.length];
+  const pnl = w.totalPnl >= 1000
+    ? '+$' + (w.totalPnl/1000).toFixed(1) + 'K'
+    : '+$' + w.totalPnl.toFixed(0);
+  // 產生假走勢（基於 winRate 產生合理的上升趨勢）
+  const sp = Array.from({length:12}, (_,i) => {
+    const base = 10 + i * (w.winRate / 10);
+    return Math.round(base + (Math.random()-0.3) * 8);
+  });
+  return {
+    id:     w.rank,
+    name:   shortAddr,
+    addr:   w.address,
+    color,
+    roi:    '+' + w.totalPnl.toFixed(0) + ' USDC',
+    win:    w.winRate.toFixed(1) + '%',
+    dd:     '-' + w.maxDrawdown.toFixed(1) + '%',
+    trades: w.tradeCount,
+    active: false,
+    pnl30:  pnl,
+    sharpe: w.sharpe,
+    favCoin: w.favoriteCoin,
+    sp,
+  };
+}
+
+async function loadTraders() {
+  try {
+    const res  = await fetch(`${LEADERBOARD_API}/leaderboard?sortBy=totalPnl&limit=50`);
+    const json = await res.json();
+    if (json.data && json.data.length > 0) {
+      TRADERS = json.data.map((w, i) => walletToTrader(w, i));
+      document.getElementById('conn-chip').textContent = `真實數據 ${TRADERS.length}個`;
+      document.getElementById('conn-chip').style.borderColor = 'rgba(0,212,160,.3)';
+      document.getElementById('conn-chip').style.color = 'var(--green)';
+      return true;
+    }
+  } catch(e) {
+    console.warn('本機 API 連不上，使用示例數據:', e.message);
+  }
+  // 備用示例數據（API 連不上時顯示）
+  TRADERS = [
+    {id:1,name:'0xfd81...d97a',addr:'0xfd81b27d9796a1ba7d7171ea70010c9befb2a62a',color:'#00d4a0',roi:'+$61,463',win:'95.9%',dd:'-0%',  trades:467,active:false,pnl30:'+$61K',sp:[10,20,35,50,60,75,80,90,88,95,92,98]},
+    {id:2,name:'0x7b7f...28f1',addr:'0x7b7f72a28fe109fa703eeed7984f2a8a68fedee2',color:'#3b8efc',roi:'+$17,399',win:'51.9%',dd:'-57%', trades:1212,active:false,pnl30:'+$17K',sp:[5,15,10,25,20,35,30,45,40,50,45,55]},
+    {id:3,name:'0xecb6...47c7',addr:'0xecb63caa47c7c4e77f60f1ce858cf28dc2b82b00',color:'#f5a623',roi:'+$14,914',win:'63.3%',dd:'-26%', trades:1033,active:false,pnl30:'+$14K',sp:[8,18,14,25,22,32,28,38,35,45,42,48]},
+    {id:4,name:'0x0724...e3d3',addr:'0x072177e3d373031b7a0957e7bde1a9ea96f819ab',color:'#ff4d5e',roi:'+$10,901',win:'47.9%',dd:'-100%',trades:588, active:false,pnl30:'+$10K',sp:[20,15,25,18,30,22,35,28,40,32,45,38]},
+  ];
+  return false;
+}
+
+/* ─── FORMAT HELPERS ─── */
+function fmtPx(n, dec=2) {
+  const v = parseFloat(n);
+  if (isNaN(v)) return '--';
+  if (v >= 10000) return '$' + v.toLocaleString('en',{maximumFractionDigits:0});
+  if (v >= 100)   return '$' + v.toLocaleString('en',{maximumFractionDigits:1});
+  return '$' + v.toFixed(dec);
+}
+function fmtVol(n) {
+  const v = parseFloat(n);
+  if (!v) return '--';
+  if (v >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  return '$' + (v/1e3).toFixed(0) + 'K';
+}
+function fmtChg(mark, prev) {
+  const m = parseFloat(mark), p = parseFloat(prev);
+  if (!m || !p) return {txt:'--', up:null};
+  const c = (m-p)/p*100;
+  return { txt: (c>=0?'+':'') + c.toFixed(2)+'%', up: c>=0 };
+}
+function fmtFr(n) {
+  const v = parseFloat(n)*100;
+  return (v>=0?'+':'') + v.toFixed(4)+'%';
+}
+function fmtTime(ms) {
+  return new Date(ms).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function spark(data, color) {
+  const max = Math.max(...data);
+  return `<span class="sp">${data.map(v=>`<span class="sp-b" style="height:${Math.round(v/max*100)}%;background:${color};opacity:.75;"></span>`).join('')}</span>`;
+}
+
+/* ─── FLASH PRICE ─── */
+function flashPrice(el, cur, prev) {
+  if (!prev || !cur || cur === prev) return;
+  el.classList.remove('flash-up','flash-dn');
+  void el.offsetWidth; // reflow
+  el.classList.add(parseFloat(cur) >= parseFloat(prev) ? 'flash-up' : 'flash-dn');
+}
+
+/* ─── REST FETCH ─── */
+async function fetchMeta() {
+  const r = await fetch(HL_REST, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({type:'metaAndAssetCtxs'})
+  });
+  const data = await r.json();
+  const universe = data[0].universe;
+  const ctxs = data[1];
+  const out = [];
+  universe.forEach((a,i) => {
+    if (COINS_SHOW.includes(a.name) && ctxs[i]) out.push({name:a.name,...ctxs[i]});
+  });
+  // Sort by COINS_SHOW order
+  out.sort((a,b) => COINS_SHOW.indexOf(a.name) - COINS_SHOW.indexOf(b.name));
+  return out;
+}
+
+/* ─── WEBSOCKET ─── */
+function connectWS() {
+  wsReady = false;
+  setStatus('yellow','連接中...');
+  try {
+    ws = new WebSocket(HL_WS);
+    ws.onopen = () => {
+      wsReady = true; wsRetry = 0;
+      setStatus('green','WebSocket 連接');
+      document.getElementById('conn-chip').textContent = 'WS ✓';
+      document.getElementById('ws-badge').textContent = 'LIVE';
+      // Subscribe to allMids (real-time prices for all coins)
+      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'allMids'}}));
+      // Subscribe to ETH trades
+      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'trades',coin:'ETH'}}));
+    };
+    ws.onmessage = (e) => {
+      try { handleWSMsg(JSON.parse(e.data)); } catch(_) {}
+    };
+    ws.onclose = () => {
+      wsReady = false;
+      setStatus('red','WS 已斷線');
+      document.getElementById('conn-chip').textContent = 'REST';
+      const delay = Math.min(1000 * Math.pow(2, wsRetry++), 30000);
+      setTimeout(connectWS, delay);
+    };
+    ws.onerror = () => ws.close();
+  } catch(e) {
+    setStatus('red','WS 不支援');
+  }
+}
+
+function handleWSMsg(msg) {
+  if (!msg.channel || !msg.data) return;
+
+  if (msg.channel === 'allMids') {
+    // msg.data.mids = { BTC: "67420", ETH: "3401", ... }
+    const mids = msg.data.mids;
+    if (!mids) return;
+    updateLivePrices(mids);
+    updateTickerFromMids(mids);
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString('zh-TW');
+  }
+
+  if (msg.channel === 'trades') {
+    const trades = Array.isArray(msg.data) ? msg.data : [msg.data];
+    trades.forEach(t => {
+      if (t.coin !== 'ETH') return;
+      tradeFeed.unshift({
+        time: t.time, side: t.side, px: t.px, sz: t.sz
+      });
+      if (tradeFeed.length > 30) tradeFeed.pop();
+    });
+    renderTradeFeed();
+  }
+}
+
+function updateLivePrices(mids) {
+  const prev = {...prevPrices};
+
+  // Update stat cards
+  ['ETH','BTC','SOL'].forEach(coin => {
+    const px = mids[coin] || mids[coin+'-PERP'];
+    if (!px) return;
+    prevPrices[coin] = px;
+
+    const idMap = {ETH:'d-eth-px', BTC:'d-btc-px', SOL:'d-sol-px'};
+    const el = document.getElementById(idMap[coin]);
+    if (el) {
+      const old = el.textContent;
+      el.textContent = fmtPx(px, coin==='SOL'?2:coin==='ETH'?0:0);
+      flashPrice(el, px, prev[coin]);
+      el.style.color = parseFloat(px) >= parseFloat(prev[coin]||px) ? 'var(--green)' : 'var(--red)';
+      setTimeout(()=>{ el.style.color = coin==='ETH'?'var(--blue)':''; }, 1200);
+    }
+  });
+
+  // Update positions
+  const eth = parseFloat(mids['ETH']);
+  const sol = parseFloat(mids['SOL']);
+  if (eth) {
+    const p = eth;
+    document.getElementById('pos-eth-mark').textContent = fmtPx(p,0);
+    const pnl = (p - ETH_ENTRY) / ETH_ENTRY * 5 * 2000;
+    const pnlEl = document.getElementById('pos-eth-pnl');
+    pnlEl.textContent = (pnl>=0?'+':'') + '$' + Math.abs(pnl).toFixed(0);
+    pnlEl.style.color = pnl>=0?'var(--green)':'var(--red)';
+  }
+  if (sol) {
+    const p = sol;
+    document.getElementById('pos-sol-mark').textContent = fmtPx(p,2);
+    const pnl = (p - SOL_ENTRY) / SOL_ENTRY * 10 * 1000;
+    const pnlEl = document.getElementById('pos-sol-pnl');
+    pnlEl.textContent = (pnl>=0?'+':'') + '$' + Math.abs(pnl).toFixed(0);
+    pnlEl.style.color = pnl>=0?'var(--green)':'var(--red)';
+  }
+
+  // Update price grid
+  updatePriceGrid(mids);
+}
+
+function updatePriceGrid(mids) {
+  const grid = document.getElementById('price-grid');
+  if (!grid || !metaAssets.length) return;
+  const show = metaAssets.slice(0,6);
+  grid.innerHTML = show.map(a => {
+    const lp = mids[a.name] || a.markPx;
+    const chg = fmtChg(lp, a.prevDayPx);
+    return `<div class="pi">
+      <div class="pi-sym">${a.name}-PERP</div>
+      <div class="pi-px" style="color:${chg.up?'var(--green)':'var(--red)'}">${fmtPx(lp, parseFloat(lp)<10?4:parseFloat(lp)<100?2:1)}</div>
+      <div class="pi-chg" style="color:${chg.up?'var(--green)':'var(--red)'}">${chg.txt}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('upd-ts').textContent = new Date().toLocaleTimeString('zh-TW');
+}
+
+function updateTickerFromMids(mids) {
+  if (!metaAssets.length) return;
+  const items = metaAssets.map(a => {
+    const px = mids[a.name] || a.markPx;
+    const chg = fmtChg(px, a.prevDayPx);
+    const pxFmt = fmtPx(px, parseFloat(px)<100?2:0);
+    return `<div class="ticker-item">
+      <span class="tk-sym">${a.name}</span>
+      <span class="tk-px">${pxFmt}</span>
+      <span class="tk-chg" style="color:${chg.up?'var(--green)':'var(--red)'}">${chg.txt}</span>
+    </div>`;
+  }).join('');
+  const track = document.getElementById('ticker-track');
+  track.innerHTML = items + items; // duplicate for seamless loop
+}
+
+/* ─── RENDER FUNCTIONS ─── */
+function renderMarketTable(assets) {
+  const tbody = document.getElementById('market-body');
+  if (!tbody) return;
+  tbody.innerHTML = assets.map((a,i) => {
+    const px = parseFloat(a.markPx);
+    const chg = fmtChg(a.markPx, a.prevDayPx);
+    const vol = parseFloat(a.dayNtlVlm);
+    const oi  = parseFloat(a.openInterest) * px;
+    const fr  = parseFloat(a.funding);
+    return `<tr>
+      <td class="mono" style="color:var(--t3);">${i+1}</td>
+      <td class="mono" style="font-weight:700;">${a.name}-PERP</td>
+      <td class="mono" id="mkt-${a.name}">${fmtPx(a.markPx,px<10?4:px<100?2:0)}</td>
+      <td class="mono" style="color:${chg.up?'var(--green)':'var(--red)'};">${chg.txt}</td>
+      <td class="mono" style="color:var(--t2);">${fmtVol(vol)}</td>
+      <td class="mono" style="color:${fr>=0?'var(--green)':'var(--red)'};">${fmtFr(a.funding)}</td>
+      <td class="mono" style="color:var(--t2);">${fmtVol(oi)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTopTraders() {
+  const el = document.getElementById('top-traders');
+  if (!el) return;
+  el.innerHTML = TRADERS.slice(0,4).map(t => `
+    <div class="trader-item" onclick="openModal('${t.name}','${t.addr}','${t.color}')">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--t3);width:14px;">${t.id}</span>
+      <div class="t-av" style="background:${t.color}18;color:${t.color};">${t.name.slice(0,2)}</div>
+      <div class="t-inf">
+        <div class="t-nm">${t.name}</div>
+        <div class="t-ad">${t.addr}</div>
+      </div>
+      <div class="t-rt">
+        <div class="t-pnl" style="color:var(--green);">${t.roi}</div>
+        <div class="t-wr">勝率 ${t.win}</div>
+      </div>
+      <button class="copy-btn ${t.active?'on':''}" onclick="event.stopPropagation();openModal('${t.name}','${t.addr}','${t.color}')">${t.active?'跟單中':'+ 跟單'}</button>
+    </div>
+  `).join('');
+}
+
+function renderDiscover() {
+  const tbody = document.getElementById('disc-body');
+  if (!tbody) return;
+  tbody.innerHTML = TRADERS.map(t => `
+    <tr>
+      <td class="mono" style="color:var(--t3);">${t.id}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:9px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:${t.color}18;color:${t.color};display:grid;place-items:center;font-size:10px;font-weight:700;">${t.name.slice(0,2)}</div>
+          <div>
+            <div style="font-size:12px;font-weight:500;">${t.name}</div>
+            <div style="font-size:9px;color:var(--t3);font-family:var(--mono);">${t.addr}</div>
+          </div>
+        </div>
+      </td>
+      <td class="mono" style="color:var(--green);">${t.pnl30}</td>
+      <td class="mono" style="color:var(--green);">${t.roi}</td>
+      <td class="mono">${t.win}</td>
+      <td class="mono" style="color:var(--red);">${t.dd}</td>
+      <td class="mono" style="color:var(--t2);">${t.trades}</td>
+      <td>${spark(t.sp, t.color)}</td>
+      <td><button class="copy-btn ${t.active?'on':''}" onclick="openModal('${t.name}','${t.addr}','${t.color}')">${t.active?'跟單中':'+ 跟單'}</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderMyCopy() {
+  const el = document.getElementById('mycopy-list');
+  if (!el) return;
+  el.innerHTML = TRADERS.filter(t=>t.active).map(t => `
+    <div class="my-copy-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:50%;background:${t.color}18;color:${t.color};display:grid;place-items:center;font-size:11px;font-weight:700;">${t.name.slice(0,2)}</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;">${t.name}</div>
+            <div style="font-size:9px;color:var(--t3);font-family:var(--mono);">${t.addr}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;display:flex;align-items:center;gap:4px;">
+            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);"></span>
+            運行中
+          </span>
+          <button class="stop-btn">暫停</button>
+        </div>
+      </div>
+      <div class="mcs-grid">
+        <div class="mcs"><div class="mcs-lbl">累計盈虧</div><div class="mcs-val" style="color:var(--green);">+$2,441</div></div>
+        <div class="mcs"><div class="mcs-lbl">收益率</div><div class="mcs-val" style="color:var(--green);">+24.1%</div></div>
+        <div class="mcs"><div class="mcs-lbl">跟單筆數</div><div class="mcs-val">48</div></div>
+        <div class="mcs"><div class="mcs-lbl">設定</div><div class="mcs-val" style="font-size:11px;color:var(--t2);">10% · ≤5x</div></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTradeFeed() {
+  const el = document.getElementById('trade-feed');
+  if (!el || !tradeFeed.length) return;
+  el.innerHTML = tradeFeed.slice(0,15).map(t => {
+    const isBuy = t.side === 'B';
+    const px = parseFloat(t.px).toFixed(1);
+    const sz = parseFloat(t.sz).toFixed(4);
+    const time = fmtTime(t.time);
+    return `<div class="trade-row">
+      <span class="tr-time">${time}</span>
+      <span class="tr-side"><span class="side ${isBuy?'long':'short'}">${isBuy?'BUY':'SELL'}</span></span>
+      <span class="tr-price mono" style="color:${isBuy?'var(--green)':'var(--red)'};">$${px}</span>
+      <span class="tr-size mono">${sz}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderMonitor() {
+  const el = document.getElementById('feed-body');
+  if (!el) return;
+  const feeds = [
+    {t:'14:32:18',c:'var(--green)',  msg:'Alpha Wolf 開倉 ETH-PERP LONG 20x — 已跟單 $500'},
+    {t:'14:28:05',c:'var(--green)',  msg:'Quant King 平倉 BTC-PERP SHORT — 盈利 +$120'},
+    {t:'14:15:40',c:'var(--yellow)', msg:'鯨魚警報：0xabc...def 大額開倉 $2M SOL-PERP'},
+    {t:'13:58:22',c:'var(--green)',  msg:'Alpha Wolf 加倉 SOL-PERP LONG — 已跟單 $300'},
+    {t:'13:44:11',c:'var(--red)',    msg:'清算警報：市場 $15M BTC 多頭被清算'},
+    {t:'13:30:02',c:'var(--blue)',   msg:'資金費率提醒：ETH-PERP 費率升至 +0.05%'},
+  ];
+  el.innerHTML = feeds.map(f => `
+    <div class="feed-row">
+      <span style="color:var(--t3);font-size:10px;flex-shrink:0;">${f.t}</span>
+      <div class="feed-dot" style="background:${f.c};"></div>
+      <span style="color:var(--t2);">${f.msg}</span>
+    </div>
+  `).join('');
+}
+
+/* ─── STATUS ─── */
+function setStatus(color, text) {
+  const dot = document.getElementById('ws-dot');
+  const lbl = document.getElementById('ws-lbl');
+  const colors = {green:'var(--green)',yellow:'var(--yellow)',red:'var(--red)'};
+  const classes = {green:'dot-g',yellow:'dot-y',red:'dot-r'};
+  dot.className = 'dot ' + (classes[color]||'dot-y');
+  lbl.textContent = text;
+  lbl.style.color = colors[color]||'var(--yellow)';
+}
+
+/* ─── NAVIGATION ─── */
+const PAGE_TITLES = {dashboard:'儀表板',market:'即時行情',discover:'發現交易者',mycopy:'我的跟單',monitor:'監控中心'};
+function nav(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('pg-title').textContent = PAGE_TITLES[id]||id;
+}
+
+/* ─── FILTER / SEARCH ─── */
+function filt(type, btn) {
+  document.querySelectorAll('.fc').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function searchTrader(q) {
+  const rows = document.querySelectorAll('#disc-body tr');
+  rows.forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+/* ─── MODAL ─── */
+function openModal(name, addr) {
+  document.getElementById('m-name').textContent = name;
+  document.getElementById('m-addr').textContent = addr;
+  document.getElementById('go-btn').textContent = '開始跟單';
+  document.getElementById('go-btn').style.cssText = '';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function startCopy() {
+  const btn = document.getElementById('go-btn');
+  btn.textContent = '✓ 跟單已啟動';
+  btn.style.background = '#063d2a';
+  btn.style.color = 'var(--green)';
+  setTimeout(closeModal, 1100);
+}
+function selTg(el, gid) {
+  document.querySelectorAll(`#${gid} .to`).forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function updRisk() {
+  const v = parseFloat(document.getElementById('m-ratio').value)||0;
+  document.getElementById('m-est').textContent = '$' + Math.round(24381*v/100).toLocaleString();
+  const r = Math.min(100, v*3);
+  document.getElementById('rfill').style.width = r+'%';
+  document.getElementById('rfill').style.background = r<30?'var(--green)':r<60?'var(--yellow)':'var(--red)';
+  const t = document.getElementById('risk-txt');
+  t.textContent = r<30?'低風險':r<60?'中等風險':'高風險';
+  t.style.color  = r<30?'var(--green)':r<60?'var(--yellow)':'var(--red)';
+}
+
+/* ─── INIT ─── */
+async function init() {
+  // 先載入真實交易者數據，再渲染
+  await loadTraders();
+  renderTopTraders();
+  renderDiscover();
+  renderMyCopy();
+  renderMonitor();
+
+  // Fetch initial REST data
+  try {
+    setStatus('yellow','載入數據...');
+    metaAssets = await fetchMeta();
+
+    // Set BTC OI + FR from meta
+    const btc = metaAssets.find(a => a.name==='BTC');
+    if (btc) {
+      const oi = parseFloat(btc.openInterest) * parseFloat(btc.markPx);
+      document.getElementById('d-btc-oi').textContent = fmtVol(oi);
+      document.getElementById('d-btc-fr').textContent = '資金費率 ' + fmtFr(btc.funding);
+    }
+    // Set stat cards from initial data
+    metaAssets.forEach(a => {
+      prevPrices[a.name] = a.markPx;
+    });
+    const eth = metaAssets.find(a=>a.name==='ETH');
+    const sol = metaAssets.find(a=>a.name==='SOL');
+    const btcA = metaAssets.find(a=>a.name==='BTC');
+    if (eth) {
+      document.getElementById('d-eth-px').textContent = fmtPx(eth.markPx,0);
+      const c = fmtChg(eth.markPx,eth.prevDayPx);
+      const el = document.getElementById('d-eth-chg');
+      el.textContent = c.txt+' 24h'; el.className='stat-chg '+(c.up?'up':'dn');
+    }
+    if (btcA) {
+      document.getElementById('d-btc-px').textContent = fmtPx(btcA.markPx,0);
+      const c = fmtChg(btcA.markPx,btcA.prevDayPx);
+      const el = document.getElementById('d-btc-chg');
+      el.textContent = c.txt+' 24h'; el.className='stat-chg '+(c.up?'up':'dn');
+    }
+    if (sol) {
+      document.getElementById('d-sol-px').textContent = fmtPx(sol.markPx,2);
+      const c = fmtChg(sol.markPx,sol.prevDayPx);
+      const el = document.getElementById('d-sol-chg');
+      el.textContent = c.txt+' 24h'; el.className='stat-chg '+(c.up?'up':'dn');
+    }
+
+    // Initial price grid + ticker
+    const midMap = {};
+    metaAssets.forEach(a => { midMap[a.name] = a.markPx; });
+    updatePriceGrid(midMap);
+    updateTickerFromMids(midMap);
+    renderMarketTable(metaAssets);
+
+    // Positions initial
+    if (eth) {
+      const p = parseFloat(eth.markPx);
+      document.getElementById('pos-eth-mark').textContent = fmtPx(p,0);
+      const pnl = (p-ETH_ENTRY)/ETH_ENTRY*5*2000;
+      document.getElementById('pos-eth-pnl').textContent = (pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(0);
+    }
+    if (sol) {
+      const p = parseFloat(sol.markPx);
+      document.getElementById('pos-sol-mark').textContent = fmtPx(p,2);
+      const pnl = (p-SOL_ENTRY)/SOL_ENTRY*10*1000;
+      document.getElementById('pos-sol-pnl').textContent = (pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(0);
+    }
+
+    // Now connect WebSocket for live updates
+    setStatus('green','REST 完成，WS 連接中');
+    connectWS();
+
+    // Fallback REST poll if WS fails
+    setInterval(async () => {
+      if (wsReady) return; // WS is working, skip REST
+      const fresh = await fetchMeta().catch(()=>null);
+      if (!fresh) return;
+      metaAssets = fresh;
+      const m = {};
+      fresh.forEach(a => { m[a.name] = a.markPx; });
+      updateLivePrices(m);
+      renderMarketTable(fresh);
+    }, REFRESH_MS);
+
+  } catch(err) {
+    setStatus('red','API 連接失敗');
+    console.warn('Init error:', err);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
