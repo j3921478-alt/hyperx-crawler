@@ -1,7 +1,19 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { buildLeaderboard, loadDB } = require("./src/crawler_v2");
+const { buildLeaderboard, loadDB, crawl } = require("./src/crawler_v2");
+
+// 啟動時立即爬一次，之後每 1 小時重爬
+async function startCrawler() {
+  console.log('[Crawler] 啟動...');
+  try { await crawl({ maxWallets: 200, delayMs: 500, daysBack: 30 }); }
+  catch(e) { console.error('[Crawler] 首次爬取失敗:', e.message); }
+  setInterval(async () => {
+    try { await crawl({ maxWallets: 200, delayMs: 500, daysBack: 30 }); }
+    catch(e) { console.error('[Crawler] 定期爬取失敗:', e.message); }
+  }, 60 * 60 * 1000); // 每 1 小時
+}
+startCrawler();
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.resolve(__dirname, "public");

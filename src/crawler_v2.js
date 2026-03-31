@@ -221,14 +221,58 @@ function buildLeaderboard(db, options = {}) {
     .map((w, i) => ({ rank: i+1, ...w }));
 }
 
+/* ─── 精選種子錢包（KOL + 推薦，優先爬取） ─── */
+const SEED_WALLETS = [
+  // Recommend
+  '0xa312114b5795dff9b8db50474dd57701aa78ad1e',
+  '0x418aa6bf98a2b2bc93779f810330d88cde488888',
+  '0x99b1098d9d50aa076f78bd26ab22e6abd3710729',
+  '0x8bae3527e5a33fa0cf184f37bc112d071463ab6d',
+  '0x16bf84af3f85f8c8a97597bf2be549dfe0dee637',
+  '0xfd97600ac44b3c4e20ac1a5f23e3b18d10fa5912',
+  '0x9c2a2a966ed8e47f0c8b7e2ec2b91424f229f6a8',
+  '0x5559da6ec434c5723d0ce9c4da7f29e3f8a3d43b',
+  '0xab5e6f394951c28ab1873007e373202689cdbec3',
+  '0xbaaaf6571ab7d571043ff1e313a9609a10637864',
+  '0x4cb5f4d145cd16460932bbb9b871bb6fd5db97e3',
+  '0x0284bbd3646b59740a167ef78a306028343f3806',
+  '0x271ce82149c67fae0d2a39571707f382fe425014',
+  '0xf770f371cc66499a89ae56aa84f9506e083f99ea',
+  '0xf97ad6704baec104d00b88e0c157e2b7b3a1ddd1',
+  '0x8feb3a7d8bf1e424679fc75753b363eba5ee8185',
+  '0x8951485bff801fab6001e9091b413fd020e8d681',
+  '0x7f55bd494bed4b4eed2064eccc1af75e9d76ad4b',
+  '0xf94b346387ae5f1ae84bf10e36008cb552ca82d5',
+  '0x13a0833e8201b37c161feb2df764159707f71409',
+  // KOL
+  '0x5b5d51203a0f9079f8aeb098a6523a13f298c060',
+  '0xb83de012dba672c76a7dbbbf3e459cb59d7d6e36',
+  '0x0ddf9bae2af4b874b96d287a5ad42eb47138a902',
+  '0x8def9f50456c6c4e37fa5d3d57f108ed23992dae',
+  '0x71dfc07de32c2ebf1c4801f4b1c9e40b76d4a23d',
+  '0xefd3ab65915e35105caa462442c9ecc1346728df',
+  '0xcb58b8f5ec6d47985f0728465c25a08ef9ad2c7b',
+  '0x9b83f16d0a6456f90a8a330f04c0ca1b2f0425b0',
+  '0x856f049b70fc94d7155b5b27d8a4b3c36eaabfa6',
+  '0xdae4df7207feb3b350e4284c8efe5f7dac37f637',
+  '0x30d3ca3bed41c08e98fbdf671418421a76ee019a',
+  '0xb78d97390a96a17fd2b58fedbeb3dd876c8f660a',
+  '0x3e3868f5e6fd1b2c2b91b234436b46c0a5b1140c',
+  '0x5078c2fbea2b2ad61bc840bc023e35fce56bedb6',
+  '0x020ca66c30bec2c4fe3861a94e4db4a498a35872',
+  '0x94d3735543ecb3d339064151118644501c933814',
+];
+
 /* ─── 主爬蟲 ─── */
 async function crawl(options = {}) {
   const { maxWallets=100, delayMs=400, daysBack=30, minTrades=3 } = options;
   log(`===== 開始爬蟲 v2 maxWallets=${maxWallets} =====`);
 
   const db = loadDB();
-  const wallets = await fetchActiveWallets();
-  const targets = wallets.slice(0, maxWallets);
+  // 種子錢包優先，再補充近期活躍錢包
+  const activeWallets = await fetchActiveWallets();
+  const combined = [...new Set([...SEED_WALLETS, ...activeWallets])];
+  const targets = combined.slice(0, maxWallets);
   log(`準備分析 ${targets.length} 個錢包`);
 
   let processed=0, skipped=0, errors=0;
